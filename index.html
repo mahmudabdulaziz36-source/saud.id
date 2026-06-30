@@ -267,20 +267,163 @@
   }
   #editorView input[type="text"]:focus{ outline: none; border-bottom-color: var(--rust); }
 
-  #editorView textarea{
+  .toolbar{
+    display:flex;
+    align-items:center;
+    flex-wrap: wrap;
+    gap: 3px;
+    padding: 7px 6px;
+    margin-bottom: 16px;
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    background: rgba(255,255,255,0.45);
+  }
+  .toolbar .tb-divider{
+    width: 1px;
+    align-self: stretch;
+    background: var(--rule);
+    margin: 4px 6px;
+  }
+  .tb-btn{
+    width: 32px;
+    height: 32px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background: none;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    cursor: pointer;
+    color: var(--ink);
+    font-family: 'Source Serif 4', serif;
+    font-size: 15px;
+    line-height:1;
+    flex-shrink: 0;
+  }
+  .tb-btn svg{ width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.6; }
+  .tb-btn:hover{ background: rgba(47,69,56,0.08); border-color: var(--rule); }
+  .tb-btn.active{ background: rgba(178,58,46,0.12); color: var(--rust-deep); border-color: var(--rust); }
+  .tb-btn.tb-b{ font-weight:700; }
+  .tb-btn.tb-i{ font-style:italic; }
+  .tb-btn.tb-u{ text-decoration: underline; }
+
+  #editorView .editor-body{
     width: 100%;
-    min-height: 320px;
-    border: none;
-    background: transparent;
-    resize: vertical;
+    min-height: 280px;
     font-family: 'Source Serif 4', serif;
     font-size: 17px;
     line-height: 1.85;
     color: var(--ink);
     padding: 0;
+    outline: none;
   }
-  #editorView textarea::placeholder{ color: #ADA589; }
-  #editorView textarea:focus{ outline: none; }
+  #editorView .editor-body:empty:before{
+    content: attr(data-placeholder);
+    color: #ADA589;
+    font-style: italic;
+  }
+  #editorView .editor-body img{
+    max-width: 100%;
+    border-radius: 3px;
+    border: 1px solid var(--rule);
+    margin: 12px 0;
+    display:block;
+  }
+  #editorView .editor-body ul, #editorView .editor-body ol{
+    padding-left: 1.4em;
+    margin: 0.6em 0;
+  }
+  #editorView .editor-body p{ margin: 0 0 1em; }
+
+  .upload-row{
+    display:flex;
+    align-items: center;
+    gap: 14px;
+    margin-top: 22px;
+    padding-top: 18px;
+    border-top: 1px dashed var(--rule);
+    flex-wrap: wrap;
+  }
+  .upload-btn{
+    display:inline-flex;
+    align-items:center;
+    gap: 8px;
+    background: rgba(47,69,56,0.08);
+    border: 1px solid var(--rule);
+    color: var(--forest);
+    padding: 10px 16px;
+    border-radius: 3px;
+    font-family:'Space Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+  .upload-btn:hover{ border-color: var(--forest); }
+  .upload-btn input[type="file"]{
+    display:none;
+  }
+  .upload-filename{
+    font-family:'Space Mono', monospace;
+    font-size: 12px;
+    color: var(--ink-soft);
+  }
+  .image-preview-wrap{
+    position: relative;
+    display:inline-block;
+    margin-top: 14px;
+  }
+  .image-preview-wrap img{
+    max-width: 220px;
+    max-height: 150px;
+    object-fit: cover;
+    border-radius: 3px;
+    border: 1px solid var(--rule);
+    display:block;
+  }
+  .image-remove{
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--rust);
+    color: #fff;
+    border: none;
+    font-size: 13px;
+    line-height: 1;
+    cursor: pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .image-remove:hover{ background: var(--rust-deep); }
+
+  .read-image{
+    width: 100%;
+    max-height: 420px;
+    object-fit: cover;
+    border-radius: 3px;
+    border: 1px solid var(--rule);
+    margin-bottom: 22px;
+    display:block;
+  }
+
+  .entry-item .thumb-row{
+    display:flex;
+    align-items:center;
+    gap: 10px;
+  }
+  .entry-item .thumb{
+    width: 38px;
+    height: 38px;
+    border-radius: 3px;
+    object-fit: cover;
+    border: 1px solid var(--rule);
+    flex-shrink: 0;
+  }
+  .entry-item .thumb-text{ flex: 1; min-width: 0; }
 
   .editor-foot{
     display:flex;
@@ -345,9 +488,21 @@
   #readView .read-body{
     font-size: 17.5px;
     line-height: 1.9;
-    white-space: pre-wrap;
   }
   #readView .read-body p{ margin: 0 0 1.2em; }
+  #readView .read-body img{
+    max-width: 100%;
+    border-radius: 3px;
+    border: 1px solid var(--rule);
+    margin: 16px 0;
+    display:block;
+    white-space: normal;
+  }
+  #readView .read-body ul, #readView .read-body ol{
+    padding-left: 1.4em;
+    margin: 0 0 1.2em;
+    white-space: normal;
+  }
   #readView .read-foot{
     margin-top: 30px;
     padding-top: 18px;
@@ -477,7 +632,52 @@
 
       <div id="editorView">
         <input type="text" id="titleInput" placeholder="Judul tulisan hari ini&hellip;" maxlength="120">
-        <textarea id="bodyInput" placeholder="Tulis apa yang kamu pikirkan, alami, atau rasakan hari ini&hellip;"></textarea>
+
+        <div class="toolbar" id="toolbar">
+          <button type="button" class="tb-btn tb-b" data-cmd="bold" title="Tebal">B</button>
+          <button type="button" class="tb-btn tb-i" data-cmd="italic" title="Miring">I</button>
+          <button type="button" class="tb-btn tb-u" data-cmd="underline" title="Garis bawah">U</button>
+          <span class="tb-divider"></span>
+          <button type="button" class="tb-btn" data-cmd="justifyLeft" title="Rata kiri">
+            <svg viewBox="0 0 20 20"><line x1="3" y1="5" x2="17" y2="5"/><line x1="3" y1="10" x2="12" y2="10"/><line x1="3" y1="15" x2="15" y2="15"/></svg>
+          </button>
+          <button type="button" class="tb-btn" data-cmd="justifyCenter" title="Rata tengah">
+            <svg viewBox="0 0 20 20"><line x1="3" y1="5" x2="17" y2="5"/><line x1="6" y1="10" x2="14" y2="10"/><line x1="4.5" y1="15" x2="15.5" y2="15"/></svg>
+          </button>
+          <button type="button" class="tb-btn" data-cmd="justifyRight" title="Rata kanan">
+            <svg viewBox="0 0 20 20"><line x1="3" y1="5" x2="17" y2="5"/><line x1="8" y1="10" x2="17" y2="10"/><line x1="5" y1="15" x2="17" y2="15"/></svg>
+          </button>
+          <button type="button" class="tb-btn" data-cmd="justifyFull" title="Rata kanan-kiri (justify)">
+            <svg viewBox="0 0 20 20"><line x1="3" y1="5" x2="17" y2="5"/><line x1="3" y1="10" x2="17" y2="10"/><line x1="3" y1="15" x2="17" y2="15"/></svg>
+          </button>
+          <span class="tb-divider"></span>
+          <button type="button" class="tb-btn" data-cmd="insertUnorderedList" title="Daftar bertitik">
+            <svg viewBox="0 0 20 20"><circle cx="4" cy="5" r="1.2" fill="currentColor" stroke="none"/><line x1="8" y1="5" x2="17" y2="5"/><circle cx="4" cy="10" r="1.2" fill="currentColor" stroke="none"/><line x1="8" y1="10" x2="17" y2="10"/><circle cx="4" cy="15" r="1.2" fill="currentColor" stroke="none"/><line x1="8" y1="15" x2="17" y2="15"/></svg>
+          </button>
+          <button type="button" class="tb-btn" data-cmd="insertOrderedList" title="Daftar bernomor">
+            <svg viewBox="0 0 20 20"><text x="2" y="7" font-size="6" stroke="none" fill="currentColor">1</text><line x1="8" y1="5" x2="17" y2="5"/><text x="2" y="12" font-size="6" stroke="none" fill="currentColor">2</text><line x1="8" y1="10" x2="17" y2="10"/><text x="2" y="17" font-size="6" stroke="none" fill="currentColor">3</text><line x1="8" y1="15" x2="17" y2="15"/></svg>
+          </button>
+          <span class="tb-divider"></span>
+          <button type="button" class="tb-btn" id="insertImageBtn" title="Sisipkan gambar dalam tulisan">
+            <svg viewBox="0 0 20 20"><rect x="2.5" y="3.5" width="15" height="13" rx="1"/><circle cx="7" cy="8" r="1.5" fill="currentColor" stroke="none"/><path d="M3 14l4.5-4.5L11 13l2.5-2.5L17 14"/></svg>
+          </button>
+          <input type="file" id="inlineImageInput" accept="image/*" style="display:none;">
+        </div>
+
+        <div id="bodyInput" class="editor-body" contenteditable="true" data-placeholder="Tulis apa yang kamu pikirkan, alami, atau rasakan hari ini&hellip;"></div>
+
+        <div class="upload-row">
+          <label class="upload-btn" id="uploadLabel">
+            + Tambah Foto Sampul
+            <input type="file" id="imageInput" accept="image/*">
+          </label>
+          <span class="upload-filename" id="uploadFilename"></span>
+        </div>
+        <div id="imagePreviewWrap" class="image-preview-wrap" style="display:none;">
+          <img id="imagePreview" alt="Pratinjau foto">
+          <button type="button" class="image-remove" id="removeImageBtn">&times;</button>
+        </div>
+
         <div class="editor-foot">
           <span class="word-count" id="wordCount">0 kata</span>
           <button class="publish-btn" id="publishBtn" type="button" disabled>Terbitkan</button>
@@ -488,6 +688,7 @@
         <span class="read-meta" id="readNum">Tulisan #1</span>
         <h2 id="readTitle">Judul</h2>
         <span class="read-date" id="readDate">Tanggal</span>
+        <img id="readImage" class="read-image" style="display:none;" alt="">
         <div class="read-body" id="readBody"></div>
         <div class="read-foot">
           <button class="ghost-btn" id="backToWrite" type="button">&larr; Tulis yang Baru</button>
@@ -538,6 +739,17 @@
   const deleteBtn = document.getElementById('deleteBtn');
   const toast = document.getElementById('toast');
   const statusBanner = document.getElementById('statusBanner');
+  const imageInput = document.getElementById('imageInput');
+  const uploadFilename = document.getElementById('uploadFilename');
+  const imagePreviewWrap = document.getElementById('imagePreviewWrap');
+  const imagePreview = document.getElementById('imagePreview');
+  const removeImageBtn = document.getElementById('removeImageBtn');
+  const readImage = document.getElementById('readImage');
+  const toolbar = document.getElementById('toolbar');
+  const insertImageBtn = document.getElementById('insertImageBtn');
+  const inlineImageInput = document.getElementById('inlineImageInput');
+
+  let selectedFile = null;
 
   const bulanID = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
   const hariID = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
@@ -578,14 +790,124 @@
   }
 
   function updateWordCount(){
-    const text = bodyInput.value.trim();
+    const text = bodyInput.textContent.trim();
     const n = text.length === 0 ? 0 : text.split(/\s+/).length;
     wordCount.textContent = n + ' kata';
     publishBtn.disabled = isBusy || !(titleInput.value.trim().length > 0 && text.length > 0);
   }
 
   titleInput.addEventListener('input', updateWordCount);
-  bodyInput.addEventListener('input', updateWordCount);
+  bodyInput.addEventListener('input', () => {
+    if (bodyInput.innerHTML === '<br>') bodyInput.innerHTML = '';
+    updateWordCount();
+  });
+
+  // ====== Toolbar format teks (bold, italic, underline, rata kiri/tengah/kanan/justify, list) ======
+  function updateToolbarState(){
+    toolbar.querySelectorAll('.tb-btn[data-cmd]').forEach(btn => {
+      const cmd = btn.dataset.cmd;
+      let isActive = false;
+      try { isActive = document.queryCommandState(cmd); } catch(e){ isActive = false; }
+      btn.classList.toggle('active', isActive);
+    });
+  }
+
+  toolbar.querySelectorAll('.tb-btn[data-cmd]').forEach(btn => {
+    // mousedown dicegah default supaya seleksi teks di editor tidak hilang
+    btn.addEventListener('mousedown', (e) => e.preventDefault());
+    btn.addEventListener('click', () => {
+      bodyInput.focus();
+      document.execCommand(btn.dataset.cmd, false, null);
+      updateToolbarState();
+      updateWordCount();
+    });
+  });
+
+  document.addEventListener('selectionchange', () => {
+    if (document.activeElement === bodyInput) updateToolbarState();
+  });
+
+  // ====== Sisipkan gambar di dalam isi tulisan ======
+  let savedRange = null;
+  bodyInput.addEventListener('keyup', () => { savedRange = getCurrentRange(); });
+  bodyInput.addEventListener('mouseup', () => { savedRange = getCurrentRange(); });
+
+  function getCurrentRange(){
+    const sel = window.getSelection();
+    if (sel.rangeCount === 0) return null;
+    const range = sel.getRangeAt(0);
+    if (!bodyInput.contains(range.commonAncestorContainer)) return null;
+    return range;
+  }
+
+  insertImageBtn.addEventListener('mousedown', (e) => { e.preventDefault(); savedRange = getCurrentRange(); });
+  insertImageBtn.addEventListener('click', () => inlineImageInput.click());
+
+  inlineImageInput.addEventListener('change', async () => {
+    const file = inlineImageInput.files[0];
+    inlineImageInput.value = '';
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024){
+      showBanner('Ukuran gambar maksimal 5MB. Pilih gambar yang lebih kecil.', 'error');
+      return;
+    }
+    if (!supabase){
+      showBanner('Belum tersambung ke Supabase, jadi gambar tidak bisa diunggah dulu.', 'error');
+      return;
+    }
+
+    insertImageBtn.disabled = true;
+    const ext = file.name.split('.').pop();
+    const path = 'inline-' + Date.now() + '-' + Math.random().toString(36).slice(2,8) + '.' + ext;
+
+    const { error: uploadError } = await supabase.storage.from('journal-images').upload(path, file);
+    insertImageBtn.disabled = false;
+
+    if (uploadError){
+      showBanner('Gagal mengunggah gambar: ' + uploadError.message + '. Cek apakah bucket <code>journal-images</code> sudah dibuat.', 'error');
+      return;
+    }
+
+    const { data: publicData } = supabase.storage.from('journal-images').getPublicUrl(path);
+
+    bodyInput.focus();
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    if (savedRange) sel.addRange(savedRange);
+    document.execCommand('insertHTML', false, '<img src="' + publicData.publicUrl + '" alt="">');
+    updateWordCount();
+  });
+
+  function clearImageSelection(){
+    selectedFile = null;
+    imageInput.value = '';
+    uploadFilename.textContent = '';
+    imagePreviewWrap.style.display = 'none';
+    imagePreview.src = '';
+  }
+
+  imageInput.addEventListener('change', () => {
+    const file = imageInput.files[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024){
+      showBanner('Ukuran foto maksimal 5MB. Pilih foto yang lebih kecil.', 'error');
+      imageInput.value = '';
+      return;
+    }
+
+    selectedFile = file;
+    uploadFilename.textContent = file.name;
+    const reader = new FileReader();
+    reader.onload = e => {
+      imagePreview.src = e.target.result;
+      imagePreviewWrap.style.display = 'inline-block';
+    };
+    reader.readAsDataURL(file);
+  });
+
+  removeImageBtn.addEventListener('click', clearImageSelection);
 
   function showEditor(){
     editorView.style.display = 'block';
@@ -607,12 +929,26 @@
     readTitle.textContent = entry.title;
     readDate.textContent = formatDate(entry.created_at) + ' · pukul ' + formatTime(entry.created_at);
 
+    if (entry.image_url){
+      readImage.src = entry.image_url;
+      readImage.style.display = 'block';
+    } else {
+      readImage.style.display = 'none';
+      readImage.src = '';
+    }
+
     readBody.innerHTML = '';
-    entry.body.split(/\n+/).filter(p => p.trim().length).forEach(para => {
-      const p = document.createElement('p');
-      p.textContent = para;
-      readBody.appendChild(p);
-    });
+    if (/<[a-z][\s\S]*>/i.test(entry.body)){
+      // tulisan format rich-text (hasil toolbar baru)
+      readBody.innerHTML = entry.body;
+    } else {
+      // kompatibel dengan tulisan lama berformat teks polos
+      entry.body.split(/\n+/).filter(p => p.trim().length).forEach(para => {
+        const p = document.createElement('p');
+        p.textContent = para;
+        readBody.appendChild(p);
+      });
+    }
 
     activeId = entry.id;
     setActiveListItem(entry.id);
@@ -648,9 +984,26 @@
       dt.className = 'dt';
       dt.textContent = formatDate(entry.created_at);
 
-      btn.appendChild(num);
-      btn.appendChild(ti);
-      btn.appendChild(dt);
+      if (entry.image_url){
+        const row = document.createElement('span');
+        row.className = 'thumb-row';
+        const thumb = document.createElement('img');
+        thumb.className = 'thumb';
+        thumb.src = entry.image_url;
+        thumb.alt = '';
+        const textCol = document.createElement('span');
+        textCol.className = 'thumb-text';
+        textCol.appendChild(ti);
+        textCol.appendChild(dt);
+        row.appendChild(thumb);
+        row.appendChild(textCol);
+        btn.appendChild(num);
+        btn.appendChild(row);
+      } else {
+        btn.appendChild(num);
+        btn.appendChild(ti);
+        btn.appendChild(dt);
+      }
       btn.addEventListener('click', () => showRead(entry));
 
       li.appendChild(btn);
@@ -680,13 +1033,38 @@
   // ====== Supabase: terbitkan tulisan baru (CREATE) ======
   async function publishEntry(){
     const title = titleInput.value.trim();
-    const body = bodyInput.value.trim();
-    if (!title || !body || isBusy) return;
+    const plainText = bodyInput.textContent.trim();
+    const body = bodyInput.innerHTML;
+    if (!title || !plainText || isBusy) return;
 
     setBusy(true);
+
+    let imageUrl = null;
+    if (selectedFile){
+      const ext = selectedFile.name.split('.').pop();
+      const path = Date.now() + '-' + Math.random().toString(36).slice(2,8) + '.' + ext;
+
+      const { error: uploadError } = await supabase
+        .storage
+        .from('journal-images')
+        .upload(path, selectedFile);
+
+      if (uploadError){
+        setBusy(false);
+        showBanner('Gagal mengunggah foto: ' + uploadError.message + '. Cek apakah bucket <code>journal-images</code> sudah dibuat.', 'error');
+        return;
+      }
+
+      const { data: publicData } = supabase
+        .storage
+        .from('journal-images')
+        .getPublicUrl(path);
+      imageUrl = publicData.publicUrl;
+    }
+
     const { data, error } = await supabase
       .from(TABLE_NAME)
-      .insert([{ title: title, body: body }])
+      .insert([{ title: title, body: body, image_url: imageUrl }])
       .select()
       .single();
     setBusy(false);
@@ -701,7 +1079,8 @@
     showToast('Tulisan diterbitkan');
 
     titleInput.value = '';
-    bodyInput.value = '';
+    bodyInput.innerHTML = '';
+    clearImageSelection();
     updateWordCount();
     showRead(data);
   }
@@ -729,8 +1108,8 @@
   }
 
   publishBtn.addEventListener('click', publishEntry);
-  newEntryBtn.addEventListener('click', showEditor);
-  backToWrite.addEventListener('click', showEditor);
+  newEntryBtn.addEventListener('click', () => { clearImageSelection(); showEditor(); });
+  backToWrite.addEventListener('click', () => { clearImageSelection(); showEditor(); });
   deleteBtn.addEventListener('click', deleteEntry);
 
   function init(){
