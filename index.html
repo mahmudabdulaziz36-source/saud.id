@@ -6,6 +6,7 @@
 <title>Jurnal Saya</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
   :root{
     --paper: #ECE7D8;
@@ -401,6 +402,32 @@
     margin: 34px 4px 0;
     line-height: 1.7;
   }
+
+  .status-banner{
+    margin: 18px 4px 0;
+    padding: 12px 16px;
+    border-radius: 3px;
+    font-family:'Space Mono', monospace;
+    font-size: 12.5px;
+    line-height: 1.6;
+    display: none;
+  }
+  .status-banner.show{ display:block; }
+  .status-banner.error{
+    background: rgba(178,58,46,0.1);
+    border: 1px solid var(--rust);
+    color: var(--rust-deep);
+  }
+  .status-banner.syncing{
+    background: rgba(47,69,56,0.08);
+    border: 1px solid var(--rule);
+    color: var(--ink-soft);
+  }
+  .status-banner code{
+    background: rgba(43,42,34,0.08);
+    padding: 1px 5px;
+    border-radius: 2px;
+  }
 </style>
 </head>
 <body>
@@ -421,6 +448,9 @@
       <span class="day" id="todayDay">&mdash;</span>
     </div>
   </header>
+
+  <div class="status-banner" id="statusBanner"></div>
+
 
   <main class="layout">
     <aside class="toc">
@@ -468,7 +498,7 @@
   </main>
 
   <footer class="note">
-    Tulisan tersimpan selama halaman ini terbuka di perangkatmu. Tutup tab berarti buku catatan ditutup &mdash; sama seperti buku kertas yang belum kamu pindahkan ke rak.
+    Tulisan disimpan permanen di database Supabase &mdash; tetap ada walau tab ditutup atau dibuka dari perangkat lain.
   </footer>
 
 </div>
@@ -477,8 +507,16 @@
 
 <script>
 (function(){
-  const entries = [];
+  // ====== ISI DI SINI: kredensial proyek Supabase kamu ======
+  const SUPABASE_URL = 'https://mfirvgdnnfvttqwoisgu.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1maXJ2Z2RubmZ2dHRxd29pc2d1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI4NDUwMTQsImV4cCI6MjA5ODQyMTAxNH0.8PYKNs7AqqYT5mmE6WZuoa50JRv6iKqi2NKooGT7CXU';
+  const TABLE_NAME = 'entries';
+  // ============================================================
+
+  let supabase = null;
+  let entries = [];
   let activeId = null;
+  let isBusy = false;
 
   const titleInput = document.getElementById('titleInput');
   const bodyInput = document.getElementById('bodyInput');
@@ -499,32 +537,33 @@
   const backToWrite = document.getElementById('backToWrite');
   const deleteBtn = document.getElementById('deleteBtn');
   const toast = document.getElementById('toast');
+  const statusBanner = document.getElementById('statusBanner');
 
   const bulanID = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
   const hariID = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
 
-  function formatDate(d){
+  function formatDate(iso){
+    const d = new Date(iso);
     return hariID[d.getDay()] + ', ' + d.getDate() + ' ' + bulanID[d.getMonth()] + ' ' + d.getFullYear();
   }
-  function formatTime(d){
+  function formatTime(iso){
+    const d = new Date(iso);
     return d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0');
   }
 
   function setupStamp(){
     const now = new Date();
     document.getElementById('todayLabel').textContent = 'Hari ini';
-    document.getElementById('todayDay').textContent = formatDate(now);
+    document.getElementById('todayDay').textContent = formatDate(now.toISOString());
   }
 
-  function updateWordCount(){
-    const text = bodyInput.value.trim();
-    const n = text.length === 0 ? 0 : text.split(/\s+/).length;
-    wordCount.textContent = n + ' kata';
-    publishBtn.disabled = !(titleInput.value.trim().length > 0 && text.length > 0);
+  function showBanner(msg, type){
+    statusBanner.innerHTML = msg;
+    statusBanner.className = 'status-banner show ' + type;
   }
-
-  titleInput.addEventListener('input', updateWordCount);
-  bodyInput.addEventListener('input', updateWordCount);
+  function hideBanner(){
+    statusBanner.className = 'status-banner';
+  }
 
   function showToast(msg){
     toast.textContent = msg;
@@ -532,11 +571,28 @@
     setTimeout(()=> toast.classList.remove('show'), 2200);
   }
 
+  function setBusy(state){
+    isBusy = state;
+    publishBtn.textContent = state ? 'Menyimpan…' : 'Terbitkan';
+    updateWordCount();
+  }
+
+  function updateWordCount(){
+    const text = bodyInput.value.trim();
+    const n = text.length === 0 ? 0 : text.split(/\s+/).length;
+    wordCount.textContent = n + ' kata';
+    publishBtn.disabled = isBusy || !(titleInput.value.trim().length > 0 && text.length > 0);
+  }
+
+  titleInput.addEventListener('input', updateWordCount);
+  bodyInput.addEventListener('input', updateWordCount);
+
   function showEditor(){
     editorView.style.display = 'block';
     readView.style.display = 'none';
     tabWrite.classList.add('now');
     tabRead.classList.remove('now');
+    activeId = null;
     setActiveListItem(null);
   }
 
@@ -549,12 +605,14 @@
     const idx = entries.findIndex(e => e.id === entry.id);
     readNum.textContent = 'Tulisan #' + (entries.length - idx);
     readTitle.textContent = entry.title;
-    readDate.textContent = formatDate(entry.date) + ' &middot; '.replace('&middot;','·') + ' pukul ' + formatTime(entry.date);
-    readBody.innerHTML = entry.body.split(/\n+/).filter(p => p.trim().length).map(p => '<p></p>').join('');
-    // safely set text per paragraph to avoid HTML injection
-    const ps = readBody.querySelectorAll('p');
-    const paragraphs = entry.body.split(/\n+/).filter(p => p.trim().length);
-    ps.forEach((p,i) => p.textContent = paragraphs[i]);
+    readDate.textContent = formatDate(entry.created_at) + ' · pukul ' + formatTime(entry.created_at);
+
+    readBody.innerHTML = '';
+    entry.body.split(/\n+/).filter(p => p.trim().length).forEach(para => {
+      const p = document.createElement('p');
+      p.textContent = para;
+      readBody.appendChild(p);
+    });
 
     activeId = entry.id;
     setActiveListItem(entry.id);
@@ -567,7 +625,7 @@
   }
 
   function renderList(){
-    entryCount.textContent = entries.length + (entries.length === 1 ? ' tulisan' : ' tulisan');
+    entryCount.textContent = entries.length + ' tulisan';
     emptyState.style.display = entries.length === 0 ? 'block' : 'none';
     entryList.innerHTML = '';
 
@@ -588,7 +646,7 @@
 
       const dt = document.createElement('span');
       dt.className = 'dt';
-      dt.textContent = formatDate(entry.date);
+      dt.textContent = formatDate(entry.created_at);
 
       btn.appendChild(num);
       btn.appendChild(ti);
@@ -602,43 +660,102 @@
     if (activeId !== null) setActiveListItem(activeId);
   }
 
-  publishBtn.addEventListener('click', () => {
+  // ====== Supabase: ambil semua tulisan (READ) ======
+  async function loadEntries(){
+    showBanner('Memuat tulisan dari database…', 'syncing');
+    const { data, error } = await supabase
+      .from(TABLE_NAME)
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error){
+      showBanner('Gagal memuat data: ' + error.message + '. Cek nama tabel <code>' + TABLE_NAME + '</code> dan kebijakan RLS di Supabase.', 'error');
+      return;
+    }
+    hideBanner();
+    entries = data;
+    renderList();
+  }
+
+  // ====== Supabase: terbitkan tulisan baru (CREATE) ======
+  async function publishEntry(){
     const title = titleInput.value.trim();
     const body = bodyInput.value.trim();
-    if (!title || !body) return;
+    if (!title || !body || isBusy) return;
 
-    const entry = {
-      id: Date.now(),
-      title: title,
-      body: body,
-      date: new Date()
-    };
-    entries.unshift(entry);
+    setBusy(true);
+    const { data, error } = await supabase
+      .from(TABLE_NAME)
+      .insert([{ title: title, body: body }])
+      .select()
+      .single();
+    setBusy(false);
+
+    if (error){
+      showBanner('Gagal menerbitkan: ' + error.message, 'error');
+      return;
+    }
+
+    entries.unshift(data);
     renderList();
     showToast('Tulisan diterbitkan');
 
     titleInput.value = '';
     bodyInput.value = '';
     updateWordCount();
+    showRead(data);
+  }
 
-    showRead(entry);
-  });
-
-  newEntryBtn.addEventListener('click', showEditor);
-  backToWrite.addEventListener('click', showEditor);
-
-  deleteBtn.addEventListener('click', () => {
+  // ====== Supabase: hapus tulisan (DELETE) ======
+  async function deleteEntry(){
     const idx = entries.findIndex(e => e.id === activeId);
     if (idx === -1) return;
+    const id = activeId;
+
+    const { error } = await supabase
+      .from(TABLE_NAME)
+      .delete()
+      .eq('id', id);
+
+    if (error){
+      showBanner('Gagal menghapus: ' + error.message, 'error');
+      return;
+    }
+
     entries.splice(idx,1);
     renderList();
     showToast('Tulisan dihapus');
     showEditor();
-  });
+  }
 
-  setupStamp();
-  updateWordCount();
-  renderList();
+  publishBtn.addEventListener('click', publishEntry);
+  newEntryBtn.addEventListener('click', showEditor);
+  backToWrite.addEventListener('click', showEditor);
+  deleteBtn.addEventListener('click', deleteEntry);
+
+  function init(){
+    setupStamp();
+    updateWordCount();
+
+    if (!window.supabase || SUPABASE_URL.includes('xxxxxxxxxxxx') || SUPABASE_ANON_KEY.includes('PASTE_ANON')){
+      showBanner(
+        'Belum tersambung ke Supabase. Buka file ini, cari bagian <code>SUPABASE_URL</code> dan <code>SUPABASE_ANON_KEY</code> di awal script, lalu isi dengan kredensial proyekmu (Project Settings → API di dashboard Supabase).',
+        'error'
+      );
+      return;
+    }
+
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    loadEntries();
+
+    // sinkron otomatis kalau ada perubahan dari perangkat/tab lain
+    supabase
+      .channel('entries-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: TABLE_NAME }, () => loadEntries())
+      .subscribe();
+  }
+
+  init();
 })();
 </script>
 
