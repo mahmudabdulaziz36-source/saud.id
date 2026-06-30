@@ -680,7 +680,10 @@
 
         <div class="editor-foot">
           <span class="word-count" id="wordCount">0 kata</span>
-          <button class="publish-btn" id="publishBtn" type="button" disabled>Terbitkan</button>
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button class="ghost-btn" id="cancelEditBtn" type="button" style="display:none;">Batal</button>
+            <button class="publish-btn" id="publishBtn" type="button" disabled>Terbitkan</button>
+          </div>
         </div>
       </div>
 
@@ -691,6 +694,7 @@
         <img id="readImage" class="read-image" style="display:none;" alt="">
         <div class="read-body" id="readBody"></div>
         <div class="read-foot">
+          <button class="ghost-btn" id="editBtn" type="button">Edit Tulisan Ini</button>
           <button class="ghost-btn" id="backToWrite" type="button">&larr; Tulis yang Baru</button>
           <button class="ghost-btn danger" id="deleteBtn" type="button">Hapus Tulisan Ini</button>
         </div>
@@ -736,6 +740,8 @@
   const readDate = document.getElementById('readDate');
   const readBody = document.getElementById('readBody');
   const backToWrite = document.getElementById('backToWrite');
+  const editBtn = document.getElementById('editBtn');
+  const cancelEditBtn = document.getElementById('cancelEditBtn');
   const deleteBtn = document.getElementById('deleteBtn');
   const toast = document.getElementById('toast');
   const statusBanner = document.getElementById('statusBanner');
@@ -750,6 +756,9 @@
   const inlineImageInput = document.getElementById('inlineImageInput');
 
   let selectedFile = null;
+  let editingEntryId = null;
+  let existingImageUrl = null;
+  let removedExistingImage = false;
 
   const bulanID = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
   const hariID = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
@@ -907,15 +916,61 @@
     reader.readAsDataURL(file);
   });
 
-  removeImageBtn.addEventListener('click', clearImageSelection);
+  removeImageBtn.addEventListener('click', () => {
+    clearImageSelection();
+    if (editingEntryId !== null){
+      removedExistingImage = true;
+      existingImageUrl = null;
+    }
+  });
 
-  function showEditor(){
+  // ====== Mode tampilan: menulis (baru/edit) vs membaca ======
+  function enterWriteMode(){
     editorView.style.display = 'block';
     readView.style.display = 'none';
     tabWrite.classList.add('now');
     tabRead.classList.remove('now');
+  }
+
+  function resetEditorFields(){
+    editingEntryId = null;
+    existingImageUrl = null;
+    removedExistingImage = false;
+    titleInput.value = '';
+    bodyInput.innerHTML = '';
+    clearImageSelection();
+    publishBtn.textContent = 'Terbitkan';
+    cancelEditBtn.style.display = 'none';
     activeId = null;
     setActiveListItem(null);
+    updateWordCount();
+  }
+
+  function startEdit(entry){
+    editingEntryId = entry.id;
+    titleInput.value = entry.title;
+    bodyInput.innerHTML = entry.body || '';
+    clearImageSelection();
+    removedExistingImage = false;
+
+    if (entry.image_url){
+      existingImageUrl = entry.image_url;
+      imagePreview.src = entry.image_url;
+      imagePreviewWrap.style.display = 'inline-block';
+      uploadFilename.textContent = 'Foto sampul saat ini (pilih foto baru untuk mengganti)';
+    } else {
+      existingImageUrl = null;
+    }
+
+    publishBtn.textContent = 'Simpan Perubahan';
+    cancelEditBtn.style.display = 'inline-block';
+    enterWriteMode();
+    updateWordCount();
+  }
+
+  function showEditor(){
+    resetEditorFields();
+    enterWriteMode();
   }
 
   function showRead(entry){
@@ -1030,8 +1085,8 @@
     renderList();
   }
 
-  // ====== Supabase: terbitkan tulisan baru (CREATE) ======
-  async function publishEntry(){
+  // ====== Supabase: terbitkan tulisan baru (CREATE) atau simpan perubahan (UPDATE) ======
+  async function saveEntry(){
     const title = titleInput.value.trim();
     const plainText = bodyInput.textContent.trim();
     const body = bodyInput.innerHTML;
@@ -1039,7 +1094,8 @@
 
     setBusy(true);
 
-    let imageUrl = null;
+    let imageUrl = editingEntryId !== null ? existingImageUrl : null;
+
     if (selectedFile){
       const ext = selectedFile.name.split('.').pop();
       const path = Date.now() + '-' + Math.random().toString(36).slice(2,8) + '.' + ext;
@@ -1060,28 +1116,46 @@
         .from('journal-images')
         .getPublicUrl(path);
       imageUrl = publicData.publicUrl;
+    } else if (removedExistingImage){
+      imageUrl = null;
     }
 
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .insert([{ title: title, body: body, image_url: imageUrl }])
-      .select()
-      .single();
+    let data, error;
+    const isEditing = editingEntryId !== null;
+
+    if (isEditing){
+      ({ data, error } = await supabase
+        .from(TABLE_NAME)
+        .update({ title: title, body: body, image_url: imageUrl })
+        .eq('id', editingEntryId)
+        .select()
+        .single());
+    } else {
+      ({ data, error } = await supabase
+        .from(TABLE_NAME)
+        .insert([{ title: title, body: body, image_url: imageUrl }])
+        .select()
+        .single());
+    }
+
     setBusy(false);
 
     if (error){
-      showBanner('Gagal menerbitkan: ' + error.message, 'error');
+      showBanner((isEditing ? 'Gagal menyimpan perubahan: ' : 'Gagal menerbitkan: ') + error.message, 'error');
       return;
     }
 
-    entries.unshift(data);
+    if (isEditing){
+      const idx = entries.findIndex(e => e.id === data.id);
+      if (idx !== -1) entries[idx] = data;
+      showToast('Perubahan disimpan');
+    } else {
+      entries.unshift(data);
+      showToast('Tulisan diterbitkan');
+    }
     renderList();
-    showToast('Tulisan diterbitkan');
 
-    titleInput.value = '';
-    bodyInput.innerHTML = '';
-    clearImageSelection();
-    updateWordCount();
+    resetEditorFields();
     showRead(data);
   }
 
@@ -1107,10 +1181,22 @@
     showEditor();
   }
 
-  publishBtn.addEventListener('click', publishEntry);
-  newEntryBtn.addEventListener('click', () => { clearImageSelection(); showEditor(); });
-  backToWrite.addEventListener('click', () => { clearImageSelection(); showEditor(); });
+  publishBtn.addEventListener('click', saveEntry);
+  newEntryBtn.addEventListener('click', showEditor);
+  backToWrite.addEventListener('click', showEditor);
   deleteBtn.addEventListener('click', deleteEntry);
+
+  editBtn.addEventListener('click', () => {
+    const entry = entries.find(e => e.id === activeId);
+    if (entry) startEdit(entry);
+  });
+
+  cancelEditBtn.addEventListener('click', () => {
+    const id = editingEntryId;
+    resetEditorFields();
+    const entry = entries.find(e => e.id === id);
+    if (entry) showRead(entry);
+  });
 
   function init(){
     setupStamp();
