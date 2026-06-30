@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jurnal Saya</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper: #ECE7D8;
+    --paper-deep: #E2DCC8;
+    --ink: #2B2A22;
+    --ink-soft: #5C5848;
+    --rule: #C9C0A4;
+    --forest: #2F4538;
+    --forest-deep: #233529;
+    --rust: #B23A2E;
+    --rust-deep: #8E2C22;
+    --card-shadow: 0 1px 0 rgba(43,42,34,0.08), 0 8px 20px -12px rgba(43,42,34,0.25);
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background: var(--paper);
+    background-image:
+      repeating-linear-gradient(0deg, transparent, transparent 31px, rgba(43,42,34,0.045) 32px);
+    color: var(--ink);
+    font-family: 'Source Serif 4', serif;
+    min-height:100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* perforated spine on the far left, like a notebook */
+  .spine{
+    position: fixed;
+    top:0; left:0; bottom:0;
+    width: 28px;
+    background: var(--paper-deep);
+    border-right: 1px solid var(--rule);
+    display:flex;
+    flex-direction: column;
+    align-items:center;
+    padding-top: 60px;
+    gap: 26px;
+    z-index: 5;
+  }
+  .spine span{
+    width:9px; height:9px;
+    border-radius:50%;
+    background: var(--paper);
+    box-shadow: inset 0 0 0 1px var(--rule), inset 0 2px 3px rgba(0,0,0,0.15);
+  }
+
+  .wrap{
+    margin-left: 28px;
+    max-width: 1180px;
+    margin-right:auto;
+    padding: 0 32px 80px;
+  }
+
+  header.top{
+    padding: 46px 4px 30px;
+    border-bottom: 1px solid var(--rule);
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  .brand-eyebrow{
+    font-family:'Space Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--forest);
+    margin: 0 0 8px;
+  }
+  h1.brand{
+    font-family:'Fraunces', serif;
+    font-weight: 600;
+    font-size: clamp(34px, 5vw, 54px);
+    margin: 0;
+    line-height: 1.02;
+    color: var(--ink);
+  }
+  h1.brand em{
+    font-style: italic;
+    font-weight: 400;
+    color: var(--rust);
+  }
+  .today-stamp{
+    font-family:'Space Mono', monospace;
+    font-size: 13px;
+    color: var(--ink-soft);
+    text-align: right;
+    border: 1px solid var(--rule);
+    padding: 8px 14px;
+    border-radius: 3px;
+    background: rgba(255,255,255,0.35);
+  }
+  .today-stamp .day{
+    display:block;
+    font-size: 20px;
+    color: var(--ink);
+    letter-spacing: 0.02em;
+  }
+
+  main.layout{
+    display:grid;
+    grid-template-columns: 300px 1fr;
+    gap: 0;
+    margin-top: 8px;
+    border: 1px solid var(--rule);
+    background: rgba(255,255,255,0.28);
+  }
+  @media (max-width: 820px){
+    main.layout{ grid-template-columns: 1fr; }
+  }
+
+  /* sidebar: table of contents */
+  aside.toc{
+    border-right: 1px solid var(--rule);
+    padding: 26px 22px;
+    min-height: 520px;
+  }
+  @media (max-width: 820px){
+    aside.toc{ border-right:none; border-bottom: 1px solid var(--rule); min-height:auto; }
+  }
+  .toc-head{
+    display:flex;
+    justify-content:space-between;
+    align-items: baseline;
+    margin-bottom: 18px;
+  }
+  .toc-head h2{
+    font-family:'Fraunces', serif;
+    font-size: 15px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 600;
+    margin:0;
+    color: var(--forest);
+  }
+  .toc-count{
+    font-family:'Space Mono', monospace;
+    font-size: 12px;
+    color: var(--ink-soft);
+  }
+
+  .entry-empty{
+    font-family:'Space Mono', monospace;
+    font-size: 13px;
+    color: var(--ink-soft);
+    line-height: 1.7;
+    padding: 18px 0;
+    border-top: 1px dashed var(--rule);
+  }
+
+  ul.entry-list{
+    list-style:none;
+    margin:0; padding:0;
+  }
+  ul.entry-list li{
+    border-top: 1px dashed var(--rule);
+  }
+  ul.entry-list li:last-child{
+    border-bottom: 1px dashed var(--rule);
+  }
+  .entry-item{
+    display:block;
+    width: 100%;
+    text-align:left;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 14px 6px;
+    font-family: inherit;
+    color: var(--ink);
+  }
+  .entry-item:hover, .entry-item.active{
+    background: rgba(47,69,56,0.07);
+  }
+  .entry-item.active{
+    border-left: 3px solid var(--rust);
+    padding-left: 3px;
+  }
+  .entry-item .num{
+    font-family:'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--rust);
+    display:block;
+    margin-bottom: 4px;
+  }
+  .entry-item .ti{
+    font-weight: 600;
+    font-size: 15px;
+    display:block;
+    margin-bottom: 4px;
+    line-height: 1.3;
+  }
+  .entry-item .dt{
+    font-family:'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-soft);
+  }
+
+  .new-btn{
+    width: 100%;
+    margin-top: 22px;
+    padding: 12px 14px;
+    background: var(--forest);
+    color: #F4F0E2;
+    border: none;
+    border-radius: 3px;
+    font-family:'Space Mono', monospace;
+    font-size: 12.5px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+  .new-btn:hover{ background: var(--forest-deep); }
+
+  /* main page area */
+  section.page{
+    padding: 34px 40px 46px;
+    position: relative;
+  }
+  @media (max-width: 600px){
+    section.page{ padding: 26px 20px 36px; }
+  }
+
+  .mode-tab{
+    display:inline-flex;
+    gap: 4px;
+    margin-bottom: 22px;
+    font-family:'Space Mono', monospace;
+    font-size: 11.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .mode-tab span{
+    color: var(--ink-soft);
+  }
+  .mode-tab span.now{ color: var(--rust); }
+
+  /* editor */
+  #editorView input[type="text"]{
+    width: 100%;
+    border: none;
+    background: transparent;
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: clamp(24px, 3vw, 34px);
+    color: var(--ink);
+    padding: 4px 0 14px;
+    border-bottom: 1px solid var(--rule);
+    margin-bottom: 18px;
+  }
+  #editorView input[type="text"]::placeholder{
+    color: #ADA589;
+    font-weight: 400;
+    font-style: italic;
+  }
+  #editorView input[type="text"]:focus{ outline: none; border-bottom-color: var(--rust); }
+
+  #editorView textarea{
+    width: 100%;
+    min-height: 320px;
+    border: none;
+    background: transparent;
+    resize: vertical;
+    font-family: 'Source Serif 4', serif;
+    font-size: 17px;
+    line-height: 1.85;
+    color: var(--ink);
+    padding: 0;
+  }
+  #editorView textarea::placeholder{ color: #ADA589; }
+  #editorView textarea:focus{ outline: none; }
+
+  .editor-foot{
+    display:flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 26px;
+    padding-top: 18px;
+    border-top: 1px dashed var(--rule);
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .word-count{
+    font-family:'Space Mono', monospace;
+    font-size: 12px;
+    color: var(--ink-soft);
+  }
+  .publish-btn{
+    background: var(--rust);
+    color: #FBF6E9;
+    border: none;
+    padding: 13px 26px;
+    font-family:'Space Mono', monospace;
+    font-size: 13px;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: transform 0.12s ease, background 0.15s ease;
+  }
+  .publish-btn:hover{ background: var(--rust-deep); transform: translateY(-1px); }
+  .publish-btn:active{ transform: translateY(0); }
+  .publish-btn:disabled{
+    background: #C9C0A4;
+    cursor: not-allowed;
+    transform:none;
+  }
+
+  /* reading view */
+  #readView{ display:none; }
+  #readView .read-meta{
+    font-family:'Space Mono', monospace;
+    font-size: 12px;
+    color: var(--rust);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 10px;
+  }
+  #readView h2{
+    font-family:'Fraunces', serif;
+    font-weight: 600;
+    font-size: clamp(26px, 3.4vw, 38px);
+    margin: 0 0 6px;
+    line-height: 1.08;
+  }
+  #readView .read-date{
+    font-family:'Space Mono', monospace;
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    margin-bottom: 26px;
+    display:block;
+  }
+  #readView .read-body{
+    font-size: 17.5px;
+    line-height: 1.9;
+    white-space: pre-wrap;
+  }
+  #readView .read-body p{ margin: 0 0 1.2em; }
+  #readView .read-foot{
+    margin-top: 30px;
+    padding-top: 18px;
+    border-top: 1px dashed var(--rule);
+    display:flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .ghost-btn{
+    background: none;
+    border: 1px solid var(--rule);
+    padding: 10px 18px;
+    font-family:'Space Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    border-radius: 3px;
+    cursor: pointer;
+  }
+  .ghost-btn:hover{ border-color: var(--ink-soft); color: var(--ink); }
+  .danger{ color: var(--rust); }
+  .danger:hover{ border-color: var(--rust); color: var(--rust-deep); }
+
+  .toast{
+    position: fixed;
+    bottom: 28px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--forest);
+    color: #F4F0E2;
+    font-family:'Space Mono', monospace;
+    font-size: 13px;
+    padding: 12px 22px;
+    border-radius: 4px;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.3s ease;
+    z-index: 50;
+    letter-spacing: 0.02em;
+  }
+  .toast.show{
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  footer.note{
+    text-align:center;
+    font-family:'Space Mono', monospace;
+    font-size: 11.5px;
+    color: var(--ink-soft);
+    margin: 34px 4px 0;
+    line-height: 1.7;
+  }
+</style>
+</head>
+<body>
+
+<div class="spine">
+  <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+</div>
+
+<div class="wrap">
+
+  <header class="top">
+    <div>
+      <p class="brand-eyebrow">Catatan harian &mdash; ditulis, lalu diterbitkan</p>
+      <h1 class="brand">Jurnal <em>Saya</em></h1>
+    </div>
+    <div class="today-stamp">
+      <span id="todayLabel">&mdash;</span>
+      <span class="day" id="todayDay">&mdash;</span>
+    </div>
+  </header>
+
+  <main class="layout">
+    <aside class="toc">
+      <div class="toc-head">
+        <h2>Daftar Tulisan</h2>
+        <span class="toc-count" id="entryCount">0 tulisan</span>
+      </div>
+
+      <div id="emptyState" class="entry-empty">
+        Belum ada tulisan yang diterbitkan.<br>Mulai tulis cerita pertamamu di sebelah kanan, lalu tekan "Terbitkan".
+      </div>
+
+      <ul class="entry-list" id="entryList"></ul>
+
+      <button class="new-btn" id="newEntryBtn" type="button">+ Tulisan Baru</button>
+    </aside>
+
+    <section class="page">
+      <div class="mode-tab">
+        <span id="tabWrite" class="now">Menulis</span>
+        <span>&nbsp;/&nbsp;</span>
+        <span id="tabRead">Membaca</span>
+      </div>
+
+      <div id="editorView">
+        <input type="text" id="titleInput" placeholder="Judul tulisan hari ini&hellip;" maxlength="120">
+        <textarea id="bodyInput" placeholder="Tulis apa yang kamu pikirkan, alami, atau rasakan hari ini&hellip;"></textarea>
+        <div class="editor-foot">
+          <span class="word-count" id="wordCount">0 kata</span>
+          <button class="publish-btn" id="publishBtn" type="button" disabled>Terbitkan</button>
+        </div>
+      </div>
+
+      <div id="readView">
+        <span class="read-meta" id="readNum">Tulisan #1</span>
+        <h2 id="readTitle">Judul</h2>
+        <span class="read-date" id="readDate">Tanggal</span>
+        <div class="read-body" id="readBody"></div>
+        <div class="read-foot">
+          <button class="ghost-btn" id="backToWrite" type="button">&larr; Tulis yang Baru</button>
+          <button class="ghost-btn danger" id="deleteBtn" type="button">Hapus Tulisan Ini</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="note">
+    Tulisan tersimpan selama halaman ini terbuka di perangkatmu. Tutup tab berarti buku catatan ditutup &mdash; sama seperti buku kertas yang belum kamu pindahkan ke rak.
+  </footer>
+
+</div>
+
+<div class="toast" id="toast">Tulisan diterbitkan</div>
+
+<script>
+(function(){
+  const entries = [];
+  let activeId = null;
+
+  const titleInput = document.getElementById('titleInput');
+  const bodyInput = document.getElementById('bodyInput');
+  const publishBtn = document.getElementById('publishBtn');
+  const wordCount = document.getElementById('wordCount');
+  const entryList = document.getElementById('entryList');
+  const entryCount = document.getElementById('entryCount');
+  const emptyState = document.getElementById('emptyState');
+  const newEntryBtn = document.getElementById('newEntryBtn');
+  const editorView = document.getElementById('editorView');
+  const readView = document.getElementById('readView');
+  const tabWrite = document.getElementById('tabWrite');
+  const tabRead = document.getElementById('tabRead');
+  const readNum = document.getElementById('readNum');
+  const readTitle = document.getElementById('readTitle');
+  const readDate = document.getElementById('readDate');
+  const readBody = document.getElementById('readBody');
+  const backToWrite = document.getElementById('backToWrite');
+  const deleteBtn = document.getElementById('deleteBtn');
+  const toast = document.getElementById('toast');
+
+  const bulanID = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+  const hariID = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+
+  function formatDate(d){
+    return hariID[d.getDay()] + ', ' + d.getDate() + ' ' + bulanID[d.getMonth()] + ' ' + d.getFullYear();
+  }
+  function formatTime(d){
+    return d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0');
+  }
+
+  function setupStamp(){
+    const now = new Date();
+    document.getElementById('todayLabel').textContent = 'Hari ini';
+    document.getElementById('todayDay').textContent = formatDate(now);
+  }
+
+  function updateWordCount(){
+    const text = bodyInput.value.trim();
+    const n = text.length === 0 ? 0 : text.split(/\s+/).length;
+    wordCount.textContent = n + ' kata';
+    publishBtn.disabled = !(titleInput.value.trim().length > 0 && text.length > 0);
+  }
+
+  titleInput.addEventListener('input', updateWordCount);
+  bodyInput.addEventListener('input', updateWordCount);
+
+  function showToast(msg){
+    toast.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(()=> toast.classList.remove('show'), 2200);
+  }
+
+  function showEditor(){
+    editorView.style.display = 'block';
+    readView.style.display = 'none';
+    tabWrite.classList.add('now');
+    tabRead.classList.remove('now');
+    setActiveListItem(null);
+  }
+
+  function showRead(entry){
+    editorView.style.display = 'none';
+    readView.style.display = 'block';
+    tabWrite.classList.remove('now');
+    tabRead.classList.add('now');
+
+    const idx = entries.findIndex(e => e.id === entry.id);
+    readNum.textContent = 'Tulisan #' + (entries.length - idx);
+    readTitle.textContent = entry.title;
+    readDate.textContent = formatDate(entry.date) + ' &middot; '.replace('&middot;','·') + ' pukul ' + formatTime(entry.date);
+    readBody.innerHTML = entry.body.split(/\n+/).filter(p => p.trim().length).map(p => '<p></p>').join('');
+    // safely set text per paragraph to avoid HTML injection
+    const ps = readBody.querySelectorAll('p');
+    const paragraphs = entry.body.split(/\n+/).filter(p => p.trim().length);
+    ps.forEach((p,i) => p.textContent = paragraphs[i]);
+
+    activeId = entry.id;
+    setActiveListItem(entry.id);
+  }
+
+  function setActiveListItem(id){
+    document.querySelectorAll('.entry-item').forEach(btn=>{
+      btn.classList.toggle('active', btn.dataset.id === String(id));
+    });
+  }
+
+  function renderList(){
+    entryCount.textContent = entries.length + (entries.length === 1 ? ' tulisan' : ' tulisan');
+    emptyState.style.display = entries.length === 0 ? 'block' : 'none';
+    entryList.innerHTML = '';
+
+    entries.forEach((entry, idx) => {
+      const li = document.createElement('li');
+      const btn = document.createElement('button');
+      btn.className = 'entry-item';
+      btn.type = 'button';
+      btn.dataset.id = entry.id;
+
+      const num = document.createElement('span');
+      num.className = 'num';
+      num.textContent = '#' + (entries.length - idx);
+
+      const ti = document.createElement('span');
+      ti.className = 'ti';
+      ti.textContent = entry.title;
+
+      const dt = document.createElement('span');
+      dt.className = 'dt';
+      dt.textContent = formatDate(entry.date);
+
+      btn.appendChild(num);
+      btn.appendChild(ti);
+      btn.appendChild(dt);
+      btn.addEventListener('click', () => showRead(entry));
+
+      li.appendChild(btn);
+      entryList.appendChild(li);
+    });
+
+    if (activeId !== null) setActiveListItem(activeId);
+  }
+
+  publishBtn.addEventListener('click', () => {
+    const title = titleInput.value.trim();
+    const body = bodyInput.value.trim();
+    if (!title || !body) return;
+
+    const entry = {
+      id: Date.now(),
+      title: title,
+      body: body,
+      date: new Date()
+    };
+    entries.unshift(entry);
+    renderList();
+    showToast('Tulisan diterbitkan');
+
+    titleInput.value = '';
+    bodyInput.value = '';
+    updateWordCount();
+
+    showRead(entry);
+  });
+
+  newEntryBtn.addEventListener('click', showEditor);
+  backToWrite.addEventListener('click', showEditor);
+
+  deleteBtn.addEventListener('click', () => {
+    const idx = entries.findIndex(e => e.id === activeId);
+    if (idx === -1) return;
+    entries.splice(idx,1);
+    renderList();
+    showToast('Tulisan dihapus');
+    showEditor();
+  });
+
+  setupStamp();
+  updateWordCount();
+  renderList();
+})();
+</script>
+
+</body>
+</html>
