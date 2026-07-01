@@ -977,16 +977,40 @@
 
             // Inisialisasi Utama Kernel
             init: function() {
-                this.Storage.initDatabase();
-                this.UI.bindGlobalEvents();
-                this.Theme.loadTheme();
-                
+                // Setiap langkah dibungkus try/catch agar splash screen TIDAK PERNAH macet permanen
+                // walaupun terjadi error tak terduga (mis. localStorage diblokir oleh sandbox/browser).
+                try {
+                    this.Storage.initDatabase();
+                } catch (err) {
+                    console.error('VibeNet: Gagal inisialisasi database, memakai mode memori sementara.', err);
+                }
+
+                try {
+                    this.UI.bindGlobalEvents();
+                } catch (err) {
+                    console.error('VibeNet: Gagal binding event global.', err);
+                }
+
+                try {
+                    this.Theme.loadTheme();
+                } catch (err) {
+                    console.error('VibeNet: Gagal memuat tema.', err);
+                }
+
                 // Menjalankan simulasi splash screen menuju autentikasi atau core-app
                 setTimeout(() => {
-                    if (this.Auth.checkAutoLogin()) {
-                        this.Navigation.switchMainView('view-core-app');
-                        this.Navigation.to('sub-view-home');
-                    } else {
+                    try {
+                        if (this.Auth.checkAutoLogin()) {
+                            this.Navigation.switchMainView('view-core-app');
+                            this.Navigation.to('sub-view-home');
+                        } else {
+                            this.Navigation.switchMainView('view-auth');
+                            this.Auth.switchSubView('login');
+                        }
+                    } catch (err) {
+                        // Jaring pengaman terakhir: apa pun yang terjadi, jangan biarkan
+                        // pengguna terjebak selamanya di splash screen.
+                        console.error('VibeNet: Error saat transisi dari splash screen.', err);
                         this.Navigation.switchMainView('view-auth');
                         this.Auth.switchSubView('login');
                     }
@@ -994,50 +1018,84 @@
             },
 
             // Modul Manajemen Penyimpanan Lokal Persisten
+            // Menggunakan pembungkus "safeStorage" agar aplikasi tetap berjalan (fallback ke memori)
+            // walaupun localStorage diblokir oleh browser/sandbox (mis. mode privat ketat, iframe sandbox, dsb).
             Storage: {
+                _memoryFallback: {},
+                _useMemory: false,
+
+                safeGet: function(key) {
+                    if (this._useMemory) return this._memoryFallback[key] || null;
+                    try {
+                        return localStorage.getItem(key);
+                    } catch (err) {
+                        this._useMemory = true;
+                        console.warn('VibeNet: localStorage tidak dapat diakses, beralih ke penyimpanan memori sementara.', err);
+                        return this._memoryFallback[key] || null;
+                    }
+                },
+                safeSet: function(key, value) {
+                    if (this._useMemory) { this._memoryFallback[key] = value; return; }
+                    try {
+                        localStorage.setItem(key, value);
+                    } catch (err) {
+                        this._useMemory = true;
+                        this._memoryFallback[key] = value;
+                        console.warn('VibeNet: localStorage tidak dapat diakses, beralih ke penyimpanan memori sementara.', err);
+                    }
+                },
+                safeRemove: function(key) {
+                    if (this._useMemory) { delete this._memoryFallback[key]; return; }
+                    try {
+                        localStorage.removeItem(key);
+                    } catch (err) {
+                        delete this._memoryFallback[key];
+                    }
+                },
+
                 initDatabase: function() {
                     // Struktur Database Awal jika LocalStorage kosong
-                    if (!localStorage.getItem('vibenet_users')) {
+                    if (!this.safeGet('vibenet_users')) {
                         const defaultUsers = [
                             { id: "usr_1", name: "Imma", username: "imma_law", email: "imma@vibenet.co", password: "password123", avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150", cover: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800", bio: "Law Student | Sixth Semester | Analyst & Content Architect ⚖️📈", website: "https://vibenet.co/immalaw", followers: ["usr_2", "usr_3"], following: ["usr_2"], achievements: ["Top Writer", "Tech Analyst"] },
                             { id: "usr_2", name: "Patahuddin Montasik", username: "patahuddin_m", email: "patah@mamduh.co", password: "password123", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150", cover: "https://images.unsplash.com/photo-1614850523459-c2f4c699c52e?w=800", bio: "CEO Mamduh Wisata Ilahi ✈️🕋 Kelola Perjalanan Ibadah Terpercaya Anda.", website: "https://mamduhwisata.com", followers: ["usr_1"], following: ["usr_1", "usr_3"], achievements: ["Verified Organizer"] },
                             { id: "usr_3", name: "Siti Rahma", username: "rahma_tech", email: "rahma@vibenet.co", password: "password123", avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150", cover: "https://images.unsplash.com/photo-1634017839464-5c339ebe3cb4?w=800", bio: "UI/UX Pioneer & Motion Enthusiast 🦄 | Coding beautiful interfaces.", website: "https://rahma.dev", followers: ["usr_2"], following: ["usr_1"], achievements: ["Design Pioneer"] }
                         ];
-                        localStorage.setItem('vibenet_users', JSON.stringify(defaultUsers));
+                        this.safeSet('vibenet_users', JSON.stringify(defaultUsers));
                     }
                     
-                    if (!localStorage.getItem('vibenet_posts')) {
+                    if (!this.safeGet('vibenet_posts')) {
                         const defaultPosts = [
                             { id: "post_1", userId: "usr_2", type: "carousel", media: ["https://images.unsplash.com/photo-1542838132-92c53300491e?w=800", "https://images.unsplash.com/photo-1569154941061-e231b4725ef1?w=800"], music: "Harmoni Alam - Relaksasi", location: "Makassar, Indonesia", caption: "Alhamdulillah, keberangkatan jamaah travel Mamduh Wisata Ilahi kloter pertama berjalan dengan aman dan lancar menuju Madinah. Semoga menjadi umrah yang mabrur. #umrah #travel #mamduh", likes: ["usr_1", "usr_3"], comments: [{ id: "c_1", userId: "usr_1", text: "Barakallah pak, semoga lancar terus usahanya! 🙏✨", timestamp: Date.now() - 3600000, replies: [] }], saved: ["usr_1"], timestamp: Date.now() - 7200000, poll: null },
                             { id: "post_2", userId: "usr_1", type: "video", media: ["https://assets.mixkit.co/videos/preview/mixkit-working-at-a-clean-neon-desk-43180-large.mp4"], music: "Lofi Study Beats - Focus Focus", location: "Fakultas Hukum", caption: "Mengejar target proposal skripsi semester 6 selesai secepatnya biar bisa fokus mengasah skill praktis yang berdampak riil! Kuncinya konsistensi ⚖️🔥 #LawStudent #Productivity #Skripsi", likes: ["usr_2"], comments: [], saved: [], timestamp: Date.now() - 86400000, poll: { question: "Udah kelar proposal kalian?", options: [{text: "Udah dong", votes: ["usr_2"]}, {text: "Belum, mager", votes: ["usr_3"]}] } }
                         ];
-                        localStorage.setItem('vibenet_posts', JSON.stringify(defaultPosts));
+                        this.safeSet('vibenet_posts', JSON.stringify(defaultPosts));
                     }
 
-                    if (!localStorage.getItem('vibenet_stories')) {
+                    if (!this.safeGet('vibenet_stories')) {
                         const defaultStories = [
                             { id: "st_1", userId: "usr_1", media: "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=500", type: "photo", timestamp: Date.now() - 1200000, viewers: ["usr_2", "usr_3"], reactions: { "usr_2": "🔥" } },
                             { id: "st_2", userId: "usr_2", media: "https://images.unsplash.com/photo-1578894381163-e72c17f2d45f?w=500", type: "photo", timestamp: Date.now() - 5000000, viewers: ["usr_1"], reactions: {} }
                         ];
-                        localStorage.setItem('vibenet_stories', JSON.stringify(defaultStories));
+                        this.safeSet('vibenet_stories', JSON.stringify(defaultStories));
                     }
 
-                    if (!localStorage.getItem('vibenet_chats')) {
-                        localStorage.setItem('vibenet_chats', JSON.stringify([]));
+                    if (!this.safeGet('vibenet_chats')) {
+                        this.safeSet('vibenet_chats', JSON.stringify([]));
                     }
 
                     // Sinkronisasi data ke state internal memori
-                    AppEngine.state.db.users = JSON.parse(localStorage.getItem('vibenet_users'));
-                    AppEngine.state.db.posts = JSON.parse(localStorage.getItem('vibenet_posts'));
-                    AppEngine.state.db.stories = JSON.parse(localStorage.getItem('vibenet_stories'));
-                    AppEngine.state.db.chats = JSON.parse(localStorage.getItem('vibenet_chats'));
+                    AppEngine.state.db.users = JSON.parse(this.safeGet('vibenet_users'));
+                    AppEngine.state.db.posts = JSON.parse(this.safeGet('vibenet_posts'));
+                    AppEngine.state.db.stories = JSON.parse(this.safeGet('vibenet_stories'));
+                    AppEngine.state.db.chats = JSON.parse(this.safeGet('vibenet_chats'));
                 },
                 
                 saveAll: function() {
-                    localStorage.setItem('vibenet_users', JSON.stringify(AppEngine.state.db.users));
-                    localStorage.setItem('vibenet_posts', JSON.stringify(AppEngine.state.db.posts));
-                    localStorage.setItem('vibenet_stories', JSON.stringify(AppEngine.state.db.stories));
-                    localStorage.setItem('vibenet_chats', JSON.stringify(AppEngine.state.db.chats));
+                    this.safeSet('vibenet_users', JSON.stringify(AppEngine.state.db.users));
+                    this.safeSet('vibenet_posts', JSON.stringify(AppEngine.state.db.posts));
+                    this.safeSet('vibenet_stories', JSON.stringify(AppEngine.state.db.stories));
+                    this.safeSet('vibenet_chats', JSON.stringify(AppEngine.state.db.chats));
                 }
             },
 
@@ -1048,10 +1106,10 @@
                     const target = current === 'dark' ? 'light' : 'dark';
                     document.body.setAttribute('data-theme', target);
                     AppEngine.state.theme = target;
-                    localStorage.setItem('vibenet_theme', target);
+                    AppEngine.Storage.safeSet('vibenet_theme', target);
                 },
                 loadTheme: function() {
-                    const saved = localStorage.getItem('vibenet_theme') || 'light';
+                    const saved = AppEngine.Storage.safeGet('vibenet_theme') || 'light';
                     document.body.setAttribute('data-theme', saved);
                     AppEngine.state.theme = saved;
                 }
@@ -1106,7 +1164,7 @@
                     else el.type = 'password';
                 },
                 checkAutoLogin: function() {
-                    const session = localStorage.getItem('vibenet_session');
+                    const session = AppEngine.Storage.safeGet('vibenet_session');
                     if (session) {
                         const user = AppEngine.state.db.users.find(u => u.id === session);
                         if (user) {
@@ -1139,7 +1197,7 @@
                     setTimeout(() => {
                         if (matchedUser) {
                             AppEngine.state.currentUser = matchedUser;
-                            localStorage.setItem('vibenet_session', matchedUser.id);
+                            AppEngine.Storage.safeSet('vibenet_session', matchedUser.id);
                             AppEngine.Navigation.switchMainView('view-core-app');
                             AppEngine.Navigation.to('sub-view-home');
                         } else {
@@ -1155,7 +1213,6 @@
                     const email = this.sanitizeInput(document.getElementById('reg-email').value.trim());
                     const username = this.sanitizeInput(document.getElementById('reg-username').value.trim().toLowerCase());
                     const password = document.getElementById('reg-password').value;
-                    const errorBox = document.getElementById('reg-register');
                     const submitBtn = document.getElementById('btn-register-submit');
 
                     submitBtn.disabled = true;
@@ -1213,7 +1270,7 @@
                     }, 1000);
                 },
                 logout: function() {
-                    localStorage.removeItem('vibenet_session');
+                    AppEngine.Storage.safeRemove('vibenet_session');
                     AppEngine.state.currentUser = null;
                     AppEngine.Navigation.switchMainView('view-auth');
                     this.switchSubView('login');
@@ -1254,8 +1311,10 @@
             }
         };
 
-        // Bootstrapping Core Kernel System on Load
-        window.addEventListener('DOMContentLoaded', () => AppEngine.init());
+        // Catatan: Bootstrapping AppEngine.init() dipindahkan ke akhir file (Bagian 19)
+        // agar dijalankan HANYA SEKALI, setelah seluruh modul (Stories, Timeline, Explore,
+        // Clips, Inbox, Profile, Composer) selesai dilampirkan ke AppEngine.
+        // Sebelumnya ada DUA listener DOMContentLoaded yang menyebabkan init() terpanggil dua kali.
 
         /**
          * ==========================================================================
@@ -3079,7 +3138,7 @@
                 this.activeTargetUserId = userId;
                 this.renderThreads(); // Perbarui kelas 'active' pada baris sidebar kiri
 
-                const targetUser = AppEngine.state.state.db.users.find(u => u.id === userId);
+                const targetUser = AppEngine.state.db.users.find(u => u.id === userId);
                 const viewport = document.getElementById('active-chat-viewport-pane');
                 if (!viewport || !targetUser) return;
 
@@ -3649,11 +3708,10 @@
          * ==========================================================================
          */
        document.addEventListener("DOMContentLoaded", function() {
-     console.log("VibeNet Core Platform Engine bootstrapping sequence initiated...");
-
-    // Memanggil inisialisasi terpusat agar database, tema, event, dan splash screen berjalan urut
-        AppEngine.init(); 
-    });
-    </script>
+    console.log("VibeNet Core Platform Engine bootstrapping sequence initiated...");
+    // Memanggil inisialisasi terpusat dari kernel utama
+    AppEngine.init(); 
+});
+</script>
 </body>
 </html>
